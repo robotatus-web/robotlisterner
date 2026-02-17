@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Robot Framework artifacts
+output.xml
+report.html
+log.html
+selenium-screenshot-*.png
+pabot_results/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# RAG data stores (local)
+.rf_rag_data/
+chroma_db/
+
+# OS
+.DS_Store
+Thumbs.db

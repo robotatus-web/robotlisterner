@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rf-rag"
+version = "0.1.0"
+description = "Autonomous AI-RAG for Robot Framework — Hybrid Vector + Graph architecture"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+    "robotframework>=7.0",
+    "pathspec>=0.12",
+    "networkx>=3.2",
+    "chromadb>=0.5",
+    "sentence-transformers>=3.0",
+    "click>=8.1",
+    "rich>=13.0",
+    "pydantic>=2.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "robocop>=5.0",
+    "robotidy>=4.0",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+rf-rag = "rf_rag.cli:main"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
