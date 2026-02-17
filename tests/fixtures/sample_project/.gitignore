@@ -1,0 +1,7 @@
+venv/
+.venv/
+__pycache__/
+output.xml
+report.html
+log.html
+pabot/
