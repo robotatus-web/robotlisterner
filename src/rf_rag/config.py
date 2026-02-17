@@ -36,9 +36,20 @@ class RAGConfig(BaseModel):
     project_root: Path
     data_dir: Optional[Path] = None  # defaults to project_root / .rf_rag_data
     embedding_model: str = "all-MiniLM-L6-v2"
-    chroma_collection: str = "rf_rag"
+    embedding_dim: int = 384  # must match embedding_model output dimension
     smoke_test_count: int = 20
     similarity_threshold: float = 0.90  # for redundancy detection
+
+    # Neo4j settings
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = "neo4j"
+    neo4j_database: str = "neo4j"
+
+    # Qdrant settings (None = in-memory mode)
+    qdrant_url: Optional[str] = None
+    qdrant_path: Optional[str] = None
+    qdrant_collection: str = "rf_rag"
 
     def effective_data_dir(self) -> Path:
         d = self.data_dir or (self.project_root / ".rf_rag_data")

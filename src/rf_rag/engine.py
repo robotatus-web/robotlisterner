@@ -35,7 +35,11 @@ class RAGEngine:
 
     def __init__(self, cfg: RAGConfig) -> None:
         self.cfg = cfg
-        self.graph = RFGraph()
+        self.graph = RFGraph(
+            uri=cfg.neo4j_uri,
+            auth=(cfg.neo4j_user, cfg.neo4j_password),
+            database=cfg.neo4j_database,
+        )
         self.vector_store = VectorStore(cfg)
         self.file_map: dict[str, ResourceFile] = {}
         self._resolver: ResourceResolver | None = None
@@ -87,10 +91,6 @@ class RAGEngine:
         self._codegen = DRYCodeGenerator(
             self.graph, self.vector_store, self.file_map, self._resolver,
         )
-
-        # Persist graph
-        graph_path = self.cfg.effective_data_dir() / "graph.json"
-        self.graph.save(graph_path)
 
         stats = {
             "files_crawled": files_crawled,
@@ -174,3 +174,11 @@ class RAGEngine:
             tags=tags,
             platform=platform,
         )
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+
+    def close(self) -> None:
+        """Release resources (Neo4j driver)."""
+        self.graph.close()

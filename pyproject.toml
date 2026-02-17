@@ -12,8 +12,8 @@ license = "MIT"
 dependencies = [
     "robotframework>=7.0",
     "pathspec>=0.12",
-    "networkx>=3.2",
-    "chromadb>=0.5",
+    "neo4j>=5.0",
+    "qdrant-client>=1.9",
     "sentence-transformers>=3.0",
     "click>=8.1",
     "rich>=13.0",
@@ -24,9 +24,8 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
-    "robocop>=5.0",
-    "robotidy>=4.0",
     "ruff>=0.4",
+    "numpy>=1.26",
 ]
 
 [project.scripts]
