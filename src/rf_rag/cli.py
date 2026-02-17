@@ -26,11 +26,20 @@ def _setup_logging(verbose: bool) -> None:
     )
 
 
-def _make_engine(project_root: str, data_dir: str | None) -> RAGEngine:
-    cfg = RAGConfig(
+def _make_engine(project_root: str, data_dir: str | None,
+                  neo4j_uri: str | None = None,
+                  neo4j_user: str | None = None,
+                  neo4j_password: str | None = None) -> RAGEngine:
+    import os
+    kwargs: dict = dict(
         project_root=Path(project_root),
         data_dir=Path(data_dir) if data_dir else None,
     )
+    # CLI flags > env vars > defaults
+    kwargs["neo4j_uri"] = neo4j_uri or os.environ.get("RF_RAG_NEO4J_URI", "bolt://localhost:7687")
+    kwargs["neo4j_user"] = neo4j_user or os.environ.get("RF_RAG_NEO4J_USER", "neo4j")
+    kwargs["neo4j_password"] = neo4j_password or os.environ.get("RF_RAG_NEO4J_PASSWORD", "neo4j")
+    cfg = RAGConfig(**kwargs)
     return RAGEngine(cfg)
 
 
@@ -49,13 +58,27 @@ def main(verbose: bool) -> None:
 # ingest
 # ---------------------------------------------------------------------------
 
+def _neo4j_options(func):
+    """Common Neo4j connection options for all commands."""
+    func = click.option("--neo4j-uri", default=None, envvar="RF_RAG_NEO4J_URI",
+                        help="Neo4j bolt URI [env: RF_RAG_NEO4J_URI].")(func)
+    func = click.option("--neo4j-user", default=None, envvar="RF_RAG_NEO4J_USER",
+                        help="Neo4j username [env: RF_RAG_NEO4J_USER].")(func)
+    func = click.option("--neo4j-password", default=None, envvar="RF_RAG_NEO4J_PASSWORD",
+                        help="Neo4j password [env: RF_RAG_NEO4J_PASSWORD].")(func)
+    return func
+
+
 @main.command()
 @click.argument("project_root", type=click.Path(exists=True, file_okay=False))
 @click.option("--data-dir", type=click.Path(), default=None,
               help="Custom directory for RAG data stores.")
-def ingest(project_root: str, data_dir: str | None) -> None:
+@_neo4j_options
+def ingest(project_root: str, data_dir: str | None,
+           neo4j_uri: str | None, neo4j_user: str | None,
+           neo4j_password: str | None) -> None:
     """Crawl, parse, and index a Robot Framework project."""
-    engine = _make_engine(project_root, data_dir)
+    engine = _make_engine(project_root, data_dir, neo4j_uri, neo4j_user, neo4j_password)
     with console.status("[bold green]Ingesting project..."):
         stats = engine.ingest()
 
@@ -76,9 +99,12 @@ def ingest(project_root: str, data_dir: str | None) -> None:
 @click.option("--threshold", type=float, default=0.90,
               help="Cosine similarity threshold (0.0–1.0).")
 @click.option("--data-dir", type=click.Path(), default=None)
-def redundancy(project_root: str, threshold: float, data_dir: str | None) -> None:
+@_neo4j_options
+def redundancy(project_root: str, threshold: float, data_dir: str | None,
+               neo4j_uri: str | None, neo4j_user: str | None,
+               neo4j_password: str | None) -> None:
     """Detect multi-layer redundancy (horizontal, vertical, migration)."""
-    engine = _make_engine(project_root, data_dir)
+    engine = _make_engine(project_root, data_dir, neo4j_uri, neo4j_user, neo4j_password)
     engine.cfg.similarity_threshold = threshold
 
     with console.status("[bold green]Ingesting..."):
@@ -111,9 +137,12 @@ def redundancy(project_root: str, threshold: float, data_dir: str | None) -> Non
 @click.argument("project_root", type=click.Path(exists=True, file_okay=False))
 @click.option("-n", "--count", type=int, default=20, help="Number of smoke tests to select.")
 @click.option("--data-dir", type=click.Path(), default=None)
-def smoke(project_root: str, count: int, data_dir: str | None) -> None:
+@_neo4j_options
+def smoke(project_root: str, count: int, data_dir: str | None,
+          neo4j_uri: str | None, neo4j_user: str | None,
+          neo4j_password: str | None) -> None:
     """Select diverse smoke tests via Farthest Point Sampling."""
-    engine = _make_engine(project_root, data_dir)
+    engine = _make_engine(project_root, data_dir, neo4j_uri, neo4j_user, neo4j_password)
 
     with console.status("[bold green]Ingesting..."):
         engine.ingest()
@@ -141,9 +170,12 @@ def smoke(project_root: str, count: int, data_dir: str | None) -> None:
 @click.argument("text")
 @click.option("-n", type=int, default=10, help="Max results.")
 @click.option("--data-dir", type=click.Path(), default=None)
-def query(project_root: str, text: str, n: int, data_dir: str | None) -> None:
+@_neo4j_options
+def query(project_root: str, text: str, n: int, data_dir: str | None,
+          neo4j_uri: str | None, neo4j_user: str | None,
+          neo4j_password: str | None) -> None:
     """Semantic search across the RF knowledge base."""
-    engine = _make_engine(project_root, data_dir)
+    engine = _make_engine(project_root, data_dir, neo4j_uri, neo4j_user, neo4j_password)
 
     with console.status("[bold green]Ingesting..."):
         engine.ingest()
@@ -177,10 +209,13 @@ def query(project_root: str, text: str, n: int, data_dir: str | None) -> None:
 @click.option("--tags", help="Comma-separated tags.")
 @click.option("--platform", default="web", help="Target platform.")
 @click.option("--data-dir", type=click.Path(), default=None)
+@_neo4j_options
 def generate(project_root: str, description: str, target: str,
-             tags: str | None, platform: str, data_dir: str | None) -> None:
+             tags: str | None, platform: str, data_dir: str | None,
+             neo4j_uri: str | None, neo4j_user: str | None,
+             neo4j_password: str | None) -> None:
     """Generate a DRY test suite using existing keywords."""
-    engine = _make_engine(project_root, data_dir)
+    engine = _make_engine(project_root, data_dir, neo4j_uri, neo4j_user, neo4j_password)
 
     with console.status("[bold green]Ingesting..."):
         engine.ingest()
@@ -209,9 +244,12 @@ def generate(project_root: str, description: str, target: str,
 @click.option("--type", "inv_type", type=click.Choice(["keywords", "tests", "graphql", "po"]),
               default="keywords", help="Inventory type.")
 @click.option("--data-dir", type=click.Path(), default=None)
-def inventory(project_root: str, inv_type: str, data_dir: str | None) -> None:
+@_neo4j_options
+def inventory(project_root: str, inv_type: str, data_dir: str | None,
+              neo4j_uri: str | None, neo4j_user: str | None,
+              neo4j_password: str | None) -> None:
     """Run inventory queries against the knowledge base."""
-    engine = _make_engine(project_root, data_dir)
+    engine = _make_engine(project_root, data_dir, neo4j_uri, neo4j_user, neo4j_password)
 
     with console.status("[bold green]Ingesting..."):
         engine.ingest()
